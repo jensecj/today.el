@@ -248,12 +248,14 @@ applying handler on ENTRY, otherwise return ENTRY."
   ;; TODO: add feed tags to org entry
   (interactive)
   (let* ((entry (car (elfeed-search-selected)))
-           (link (elfeed-entry-link entry))
-           (title (elfeed-entry-title entry))
-           (org-link (org-make-link-string link title)))
+         (link (elfeed-entry-link entry))
+         (title (elfeed-entry-title entry))
+         (date (format-time-string "%Y-%m-%d" (elfeed-entry-date entry)))
+         (tags (mapcar #'symbol-name (delete 'unread (elfeed-entry-tags entry))))
+         (org-link (org-make-link-string link title)))
     (elfeed-untag entry 'unread)
     (elfeed-search-update-entry entry)
-    (today-capture 'elfeed (cons org-link nil))
+    (today-capture 'elfeed (list org-link `(("DATE" . ,date)) tags))
     (next-line)))
 
 (provide 'today-capture)
