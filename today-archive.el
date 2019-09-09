@@ -29,20 +29,6 @@
     (org-refile arg nil (list headline file nil pos)))
   (switch-to-buffer (current-buffer)))
 
-;; TODO: create new entry if pick is not in list
-(defun today-refile-here ()
-  "Refile entry at point to a headline in the current file."
-  (interactive)
-  (let* ((entries (org-ql (current-buffer) (level 1)))
-         (headlines (-map
-                     (lambda (e)
-                       (plist-get (cadr e) ':raw-value))
-                     entries))
-         (pick (completing-read "Refile to: " headlines nil t)))
-    (if (org-at-heading-p)
-        (today-refile (buffer-file-name) pick)
-      (message "Point is not at a refilable ting"))))
-
 (defun today-archive--date-file (date)
   "Return filepath of todays archive file."
   (let* ((date-file (f-join today-directory date (concat date ".org"))))
