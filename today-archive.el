@@ -40,7 +40,7 @@
   (org-map-entries
    (lambda ()
      (let* ((org-archive-file-header-format "")
-            (org-archive-save-context-info '(time))
+            (org-archive-save-context-info '(time file olpath itags))
 
             (closed-date (assoc "CLOSED" (org-entry-properties)))
             (date-format (when (cdr closed-date) (substring (cdr closed-date) 1 11)))
