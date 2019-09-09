@@ -5,6 +5,7 @@
 (require 'dash)
 (require 'org-web-tools)
 (require 'cl-lib)
+(require 'async)
 
 (defun today-capture--url-to-org-link (url)
   "Try to get the website title of URL, then convert into
