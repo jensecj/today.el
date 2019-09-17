@@ -7,6 +7,9 @@
 (require 'cl-lib)
 (require 'async)
 
+(defvar today-capture-ytdl-path "/usr/bin/youtube-dl"
+  "path to the `youtube-dl' binary.")
+
 (defun today-capture--url-to-org-link (url)
   "Try to get the website title of URL, then convert into
 `org-link' format."
@@ -59,10 +62,11 @@ saw URL. This may not be the real publishing date for URL."
 (defun today-capture--youtube-get-upload-date (url)
   "Return the upload date for a youtube URL.
 Requires system tools `youtube-dl' and `jq'."
-  (let* ((ytdl "youtube-dl --simulate --dump-json --no-warnings")
+  (let* ((ytdl "--simulate --dump-json --no-warnings")
          (jq "jq '.upload_date'")
          (raw-date (shell-command-to-string
-                    (format "%s '%s' | %s" ytdl url jq)))
+                    (format "%s %s '%s' | %s"
+                            today-capture-ytdl-path ytdl url jq)))
          (clean-date (s-replace "\"" "" (s-trim raw-date)))
          (year (substring clean-date 0 4))
          (month (substring clean-date 4 6))
@@ -73,18 +77,20 @@ Requires system tools `youtube-dl' and `jq'."
   "Get the duration of a youtube video.
 
 Requires system tool `youtube-dl'."
-  (letrec ((raw-duration (shell-command-to-string
-                          (format "%s '%s'"
-                                  "youtube-dl --get-duration --no-warnings"
-                                  url))))
+  (let* ((args "--get-duration --no-warnings")
+         (raw-duration (shell-command-to-string
+                        (format "%s %s '%s'"
+                                today-capture-ytdl-path
+                                args url))))
     (if (<= (length raw-duration) 10)
         (s-trim raw-duration)
       "?")))
 
 (defun today-capture--youtube-playlist (url)
   "Capture a youtube playlist from URL."
-  (let* ((playlist-entries-query (format "youtube-dl --no-warnings --flat-playlist '%s' -j | jq '.title, .url'" url))
-         (playlist-title-query (format "youtube-dl --no-warnings --playlist-end 1 -j '%s' | jq '.playlist'" url))
+  (let* ((base-cmd (format "%s %s" today-capture-ytdl-path "--no-warnings"))
+         (playlist-entries-query (format "%s --flat-playlist '%s' -j | jq '.title, .url'" base-cmd url))
+         (playlist-title-query (format "%s --playlist-end 1 -j '%s' | jq '.playlist'" base-cmd url))
          (entries (shell-command-to-string playlist-entries-query))
          (entries (s-replace "\"" "" entries))
          (entries (s-split "\n" entries))
