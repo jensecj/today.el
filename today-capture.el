@@ -171,6 +171,7 @@ applying handler on ENTRY, otherwise return ENTRY."
 ;;;###autoload
 (defun today-capture-async (task entry buffer &optional level)
   "Captures an ENTRY with TASK, into BUFFER, asynchronously."
+  ;; FIXME: process x is not running on capture?
   (async-start
    `(lambda ()
       ,(async-inject-variables "^load-path$")
@@ -181,6 +182,8 @@ applying handler on ENTRY, otherwise return ENTRY."
       ,(async-inject-variables "^load-path$")
       (require 'today)
 
+      ;; TODO: dont use find-file-noselect, it loads all modes, hooks,
+      ;; etc, try `with-temp-file' + `insert-file-contents', load needed modes manually.
       (let* ((datetime (format-time-string "%Y-%m-%d %H:%M:%S"))
              (headline (car result))
              (props (cdr result))
@@ -202,6 +205,7 @@ applying handler on ENTRY, otherwise return ENTRY."
   "Capture ENTRY with TASK into todays file."
   (today-capture-async task entry (or buffer (find-file-noselect today-inbox-file)) 2))
 
+;; TODO: rewrite, to capture with level of heading
 (defun today-capture-link-with-task-from-clipboard (task)
   "Capture ENTRY with TASK into todays file."
   (let* ((entry (substring-no-properties
@@ -234,6 +238,7 @@ applying handler on ENTRY, otherwise return ENTRY."
 ;;;###autoload
 (defun today-capture-elfeed-at-point ()
   "Captures a TASK from selected elfeed entry."
+  ;; TODO: add feed tags to org entry
   (interactive)
   (let* ((entry (car (elfeed-search-selected)))
            (link (elfeed-entry-link entry))

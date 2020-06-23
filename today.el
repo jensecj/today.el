@@ -1,10 +1,10 @@
 ;;; today.el --- simple daily planning. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2018 Jens Christian Jensen
+;; Copyright (C) 2020 Jens Christian Jensen
 
 ;; Author: Jens Christian Jensen <jensecj@gmail.com>
 ;; Keywords: org, org-mode, planning, today, todo
-;; Package-Version: 20190909
+;; Package-Version: 20200623
 ;; Version: 0.9
 ;; Package-Requires: ((emacs "25.1") (org "9.0") (dash "2.14.1")  (s "1.12.0") (f "0.20.0") (hydra "0.14.0") (async "1.9.3") (org-web-tools "0.1.0-pre"))
 

@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: t -*-
+;;; today-archive.el --- -*- lexical-binding: t -*-
 
 (require 'f)
 (require 's)
@@ -16,6 +16,7 @@
       (org-cut-subtree)
       (save-buffer)
 
+      ;; TODO: dont use `find-file-noselect'
       (with-current-buffer (find-file-noselect file)
         (goto-char (point-min))
         (org-yank)
@@ -57,11 +58,13 @@
 
        (org-archive-subtree)
 
+       ;; TODO: dont use `find-file-noselect'
        (with-current-buffer (find-file-noselect date-file)
          (when (buffer-modified-p)
            (save-buffer)))
 
        (setq org-map-continue-from (outline-previous-heading))))
    "/DONE" 'file))
+
 
 (provide 'today-archive)
