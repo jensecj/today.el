@@ -124,7 +124,7 @@ Requires system tool `youtube-dl'."
          (duration (today-capture--youtube-duration-from-url url))
          (upload-date (today-capture--youtube-get-upload-date url))
          (org-link (org-make-link-string url title)))
-    (cons org-link `(("DATE" . ,upload-date) ("DURATION" . ,duration)))))
+    `(,org-link (("DATE" . ,upload-date) ("DURATION" . ,duration)))))
 
 (defun today-capture--read-link-handler (link)
   "Handler for READ task. Expects CONTENT to be a link to some
@@ -135,7 +135,7 @@ link, using the title."
   (let* ((date (today-capture--date-from-wayback-machine link))
          (lines (today-capture--count-lines-from-url link))
          (org-link (today-capture--url-to-org-link link)))
-    (cons org-link `(("DATE" . ,date) ("LOC" . ,lines)))))
+    `(,org-link (("DATE" . ,date) ("LOC" . ,lines)))))
 
 (defun today-capture--watch-link-handler (link)
   "Handler for the WATCH task. Expects the LINK to be a source
@@ -151,7 +151,7 @@ extract the duration of the video."
 link, and create an `org-mode' link using that title."
   (let ((org-link (today-capture--url-to-org-link link)))
     ;; (format "%s" org-link)
-    (cons org-link nil)))
+    (list org-link)))
 
 (defvar today-capture-handlers-alist
   '((read . today-capture--read-link-handler)
@@ -185,18 +185,25 @@ applying handler on ENTRY, otherwise return ENTRY."
       ;; TODO: dont use find-file-noselect, it loads all modes, hooks,
       ;; etc, try `with-temp-file' + `insert-file-contents', load needed modes manually.
       (let* ((datetime (format-time-string "%Y-%m-%d %H:%M:%S"))
-             (headline (car result))
-             (props (cdr result))
+             (headline (nth 0 result))
+             (props (nth 1 result))
+             (tags (mapcar (-cut s-replace "-" "_" <>);tags cannot contain hyphens, for some reason
+                           (nth 2 result)))
              (subtree (format "* %s" headline)))
         (with-current-buffer ,buffer
           (save-excursion
             (goto-char (point-max))
             (org-paste-subtree ,level subtree)
             (org-set-property "CAPTURED_TIME" datetime)
+
             (dolist (p props)
               (when-let* ((prop (car p))
                           (val (cdr p)))
                 (org-set-property prop val)))
+
+            (org-set-tags tags)
+            (org-align-tags)
+
             (org-cycle)                 ;org-set-property unfolds the subtrees properties, refold them.
             (save-buffer)))))))
 
