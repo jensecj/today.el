@@ -146,9 +146,17 @@ extract the duration of the video."
       (today-capture--youtube-playlist link)
     (today-capture--youtube-video link)))
 
+(defun today-capture--plain-link-handler (link)
+  "Handler for the PLAIN task. Will try to extract the title of the
+link, and create an `org-mode' link using that title."
+  (let ((org-link (today-capture--url-to-org-link link)))
+    ;; (format "%s" org-link)
+    (cons org-link nil)))
+
 (defvar today-capture-handlers-alist
   '((read . today-capture--read-link-handler)
-    (watch . today-capture--watch-link-handler))
+    (watch . today-capture--watch-link-handler)
+    (plain . today-capture--plain-link-handler))
   "List of capture tasks and their associated handlers. A handler
   recieves the capture content as a parameter.")
 
