@@ -163,10 +163,10 @@ link, and create an `org-mode' link using that title."
 (defun today-capture--apply-handler (task entry)
   "If a handler exists for TASK, then return the result of
 applying handler on ENTRY, otherwise return ENTRY."
-  (let ((handler (assoc task today-capture-handlers-alist)))
-    (if handler
-        (funcall (cdr handler) entry)
-      entry)))
+  (if-let ((handler (assoc task today-capture-handlers-alist)))
+      (progn
+        (funcall (cdr handler) entry))
+    entry))
 
 ;;;###autoload
 (defun today-capture-async (task entry buffer &optional level)
