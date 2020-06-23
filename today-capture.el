@@ -7,7 +7,7 @@
 (require 'cl-lib)
 (require 'async)
 
-(defvar today-capture-ytdl-path "/usr/bin/youtube-dl"
+(defvar today-capture-ytdl-path (executable-find "youtube-dl")
   "path to the `youtube-dl' binary.")
 
 (defun today-capture--url-to-org-link (url)
