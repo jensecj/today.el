@@ -29,7 +29,7 @@
 
 Requires system tool `lynx'."
   (let ((lines (s-trim (shell-command-to-string (format "lynx -dump %s | wc -l" url)))))
-    (if (< (length lines) 5) lines "?")))
+    (when (< (length lines) 5) lines)))
 
 (defun today-capture--date-from-wayback-machine (url)
   "Try to return the date of the first time the wayback machine
@@ -41,13 +41,12 @@ saw URL. This may not be the real publishing date for URL."
          (jq "jq -r '.[1]? | add?'")
          (date (unless (s-blank-str-p response)
                  (->> (shell-command-to-string (format "echo '%s' | %s" response jq)) (s-trim)))))
-    (if (not (or (s-blank-str? date)
-                 (string= (substring date 0 11) "parse error")))
-        (let ((year (substring date 0 4))
-              (month (substring date 4 6))
-              (day (substring date 6 8)))
-          (format "%s-%s-%s" year month day))
-      "?")))
+    (when (not (or (s-blank-str? date)
+                   (string= (substring date 0 11) "parse error")))
+      (let ((year (substring date 0 4))
+            (month (substring date 4 6))
+            (day (substring date 6 8)))
+        (format "%s-%s-%s" year month day)))))
 
 (defun today-capture-fix-youtube-org-link-at-point ()
   "Add upload-date and duration to a youtube org-link."
@@ -70,8 +69,10 @@ Requires system tools `youtube-dl' and `jq'."
          (clean-date (s-replace "\"" "" (s-trim raw-date)))
          (year (substring clean-date 0 4))
          (month (substring clean-date 4 6))
-         (day (substring clean-date 6 8)))
-    (format "%s-%s-%s" year month day)))
+         (day (substring clean-date 6 8))
+         (date (format "%s-%s-%s" year month day)))
+    (when (and year month day)
+      date)))
 
 (defun today-capture--youtube-duration-from-url (url)
   "Get the duration of a youtube video.
@@ -82,9 +83,8 @@ Requires system tool `youtube-dl'."
                         (format "%s %s '%s'"
                                 today-capture-ytdl-path
                                 args url))))
-    (if (<= (length raw-duration) 10)
-        (s-trim raw-duration)
-      "?")))
+    (when (<= (length raw-duration) 10) ;HACK: if its longer, its probably an error
+      (s-trim raw-duration))))
 
 (defun today-capture--youtube-playlist (url)
   "Capture a youtube playlist from URL."
@@ -122,9 +122,8 @@ Requires system tool `youtube-dl'."
          (title (replace-regexp-in-string " - YouTube$" "" title))
          (duration (today-capture--youtube-duration-from-url url))
          (upload-date (today-capture--youtube-get-upload-date url))
-         (org-link (org-make-link-string url title))
-         (entry (format "%s (%s) %s" upload-date duration org-link)))
-    (format "%s" entry)))
+         (org-link (org-make-link-string url title)))
+    (cons org-link `(("DATE" . ,upload-date) ("DURATION" . ,duration)))))
 
 (defun today-capture--read-link-handler (link)
   "Handler for READ task. Expects CONTENT to be a link to some
@@ -132,10 +131,10 @@ website. Will try to extract the number of lines on the website,
 and add to the front of the entry. Will also try to extract the
 title of the website, and convert the link into an `org-mode'
 link, using the title."
-  (let* ((lines (today-capture--count-lines-from-url link))
-         (date (today-capture--date-from-wayback-machine link))
+  (let* ((date (today-capture--date-from-wayback-machine link))
+         (lines (today-capture--count-lines-from-url link))
          (org-link (today-capture--url-to-org-link link)))
-    (format "%s (%s lines) %s" date lines org-link)))
+    (cons org-link `(("DATE" . ,date) ("LOC" . ,lines)))))
 
 (defun today-capture--watch-link-handler (link)
   "Handler for the WATCH task. Expects the LINK to be a source
@@ -161,8 +160,8 @@ applying handler on ENTRY, otherwise return ENTRY."
       entry)))
 
 ;;;###autoload
-(defun today-capture-async (task entry &optional buffer)
-  "Captures an ENTRY with TASK, into the the today-file, asynchronously."
+(defun today-capture-async (task entry buffer &optional level)
+  "Captures an ENTRY with TASK, into BUFFER, asynchronously."
   (async-start
    `(lambda ()
       ,(async-inject-variables "^load-path$")
@@ -173,13 +172,21 @@ applying handler on ENTRY, otherwise return ENTRY."
       ,(async-inject-variables "^load-path$")
       (require 'today)
 
-      (with-current-buffer (or ,buffer (find-file-noselect today-inbox-file))
-        (save-excursion
-          (goto-char (point-max))
-          (insert "** " result)
-          (org-set-property "CAPTURED_TIME" (format-time-string "%Y-%m-%d %H:%M:%S"))
-          (org-cycle)
-          (save-buffer))))))
+      (let* ((datetime (format-time-string "%Y-%m-%d %H:%M:%S"))
+             (headline (car result))
+             (props (cdr result))
+             (subtree (format "* %s" headline)))
+        (with-current-buffer ,buffer
+          (save-excursion
+            (goto-char (point-max))
+            (org-paste-subtree ,level subtree)
+            (org-set-property "CAPTURED_TIME" datetime)
+            (dolist (p props)
+              (when-let* ((prop (car p))
+                          (val (cdr p)))
+                (org-set-property prop val)))
+            (org-cycle)                 ;org-set-property unfolds the subtrees properties, refold them.
+            (save-buffer)))))))
 
 ;;;###autoload
 (defun today-capture (task entry &optional buffer)
@@ -225,7 +232,7 @@ applying handler on ENTRY, otherwise return ENTRY."
            (org-link (org-make-link-string link title)))
     (elfeed-untag entry 'unread)
     (elfeed-search-update-entry entry)
-    (today-capture 'elfeed org-link)
+    (today-capture 'elfeed (cons org-link nil))
     (next-line)))
 
 (provide 'today-capture)
