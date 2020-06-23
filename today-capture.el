@@ -177,7 +177,7 @@ applying handler on ENTRY, otherwise return ENTRY."
       ,(async-inject-variables "^load-path$")
       (require 'today)
 
-      (today-capture--apply-handler ',task ,entry))
+      (today-capture--apply-handler ',task ',entry))
    `(lambda (result)
       ,(async-inject-variables "^load-path$")
       (require 'today)
