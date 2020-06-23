@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: t -*-
+;;; today-capture.el ---  -*- lexical-binding: t -*-
 
 (require 'f)
 (require 's)
@@ -120,6 +120,7 @@ Requires system tool `youtube-dl'."
   "Capture a youtube video from URL."
   (let* ((title (today-capture--title-from-url url))
          (title (replace-regexp-in-string " - YouTube$" "" title))
+         (title (replace-regexp-in-string " - Invidious$" "" title))
          (duration (today-capture--youtube-duration-from-url url))
          (upload-date (today-capture--youtube-get-upload-date url))
          (org-link (org-make-link-string url title)))
@@ -138,10 +139,10 @@ link, using the title."
 
 (defun today-capture--watch-link-handler (link)
   "Handler for the WATCH task. Expects the LINK to be a source
-compatible with `youtube-dl'.will try to extract the title of the
+compatible with `youtube-dl'. Will try to extract the title of the
 link, and create an `org-mode' link using that title, will also
 extract the duration of the video."
-  (if (string-match-p (regexp-quote "https://www.youtube.com/playlist?list=") link)
+  (if (string-match-p (regexp-quote ".com/playlist?list=") link)
       (today-capture--youtube-playlist link)
     (today-capture--youtube-video link)))
 
@@ -191,14 +192,14 @@ applying handler on ENTRY, otherwise return ENTRY."
 ;;;###autoload
 (defun today-capture (task entry &optional buffer)
   "Capture ENTRY with TASK into todays file."
-  (today-capture-async task entry buffer))
+  (today-capture-async task entry (or buffer (find-file-noselect today-inbox-file)) 2))
 
 (defun today-capture-link-with-task-from-clipboard (task)
   "Capture ENTRY with TASK into todays file."
   (let* ((entry (substring-no-properties
                  (gui-get-selection 'CLIPBOARD 'UTF8_STRING))))
     (message "capturing from clipboard: %s" entry)
-    (today-capture-async task entry nil)))
+    (today-capture task entry)))
 
 ;;;###autoload
 (defun today-capture-link-with-task (task)
@@ -226,7 +227,7 @@ applying handler on ENTRY, otherwise return ENTRY."
 (defun today-capture-elfeed-at-point ()
   "Captures a TASK from selected elfeed entry."
   (interactive)
-  (letrec ((entry (car (elfeed-search-selected)))
+  (let* ((entry (car (elfeed-search-selected)))
            (link (elfeed-entry-link entry))
            (title (elfeed-entry-title entry))
            (org-link (org-make-link-string link title)))
